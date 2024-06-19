@@ -1,0 +1,29 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 18
+    commands:
+      - echo Installing frontend dependencies...
+      - cd frontend
+      - npm install
+      - cd ../backend
+      - echo Installing backend dependencies...
+      - npm install
+  build:
+    commands:
+      - echo Building frontend...
+      - cd ../frontend
+      - npm run build --prod
+      - cd ../backend
+      - echo Building backend...
+      - npm run build
+  post_build:
+    commands:
+      - echo Build completed.
+artifacts:
+  files:
+    - '**/*'
+  base-directory: frontend/dist/your-angular-app-name
+  discard-paths: yes
