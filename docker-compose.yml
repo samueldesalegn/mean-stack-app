@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_SERVER_URL=${DB_SERVER_URL}
+      - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY}
+      - PORT=${PORT}
+      - MONGO_PASSWORD=${MONGO_PASSWORD}
+    volumes:
+      - ./backend:/usr/src/app
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "4200:80"
+    volumes:
+      - ./frontend:/usr/src/app
+    depends_on:
+      - backend

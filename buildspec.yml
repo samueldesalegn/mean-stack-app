@@ -5,25 +5,32 @@ phases:
     runtime-versions:
       nodejs: 18
     commands:
-      - echo Installing frontend dependencies...
+      - echo Installing frontend dependencies
       - cd frontend
       - npm install
-      - cd ../backend
-      - echo Installing backend dependencies...
+      - cd ..
+      - echo Installing backend dependencies
+      - cd backend
       - npm install
+      - cd ..
+
   build:
     commands:
-      - echo Building frontend...
-      - cd ../frontend
+      - echo Building frontend
+      - cd frontend
       - npm run build --prod
-      - cd ../backend
-      - echo Building backend...
+      - cd ..
+      - echo Building backend
+      - cd backend
       - npm run build
-  post_build:
-    commands:
-      - echo Build completed.
+      - cd ..
+
 artifacts:
   files:
     - '**/*'
-  base-directory: frontend/dist/drugstore
-  discard-paths: yes
+  base-directory: 'backend/dist'
+
+env:
+  secrets-manager:
+    DB_SERVER_URL: "your-secrets-manager-arn:DB_SERVER_URL"
+    JWT_PRIVATE_KEY: "your-secrets-manager-arn:JWT_PRIVATE_KEY"
