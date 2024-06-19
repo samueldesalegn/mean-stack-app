@@ -25,5 +25,5 @@ phases:
 artifacts:
   files:
     - '**/*'
-  base-directory: frontend/dist/your-angular-app-name
+  base-directory: frontend/dist/drugstore
   discard-paths: yes
