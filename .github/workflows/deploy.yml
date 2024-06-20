@@ -32,7 +32,6 @@ jobs:
         cp mean-stack-template.yml deploy/
         cd deploy
         zip -r mean-stack-app.zip .
-        ls -la  # List files to confirm the zip was created
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -43,7 +42,7 @@ jobs:
 
     - name: Upload to S3
       run: |
-        aws s3 cp deploy/mean-stack-app.zip s3://mean-stack-sam/mean-stack-app.zip
+        aws s3 cp mean-stack-app.zip s3://mean-stack-sam/mean-stack-app.zip
 
     - name: Deploy CloudFormation stack
       run: |
