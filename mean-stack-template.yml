@@ -55,7 +55,7 @@ Resources:
           cd ../frontend
           npm install
           npm run build -- --configuration production
-          pm2 serve dist/drugstore 4200 --spa
+          pm2 serve dist/frontend 4200 --spa
 
       Tags:
         - Key: Name
