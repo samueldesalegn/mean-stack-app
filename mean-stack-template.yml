@@ -2,13 +2,9 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: CloudFormation stack for deploying a MEAN stack application
 
 Parameters:
-  DBServerUrl:
-    Type: String
   JwtPrivateKey:
     Type: String
   Port:
-    Type: String
-  MongoPassword:
     Type: String
 
 Resources:
@@ -41,10 +37,8 @@ Resources:
           cd /home/ec2-user/app
 
           # Set environment variables
-          echo "DB_SERVER_URL=${DBServerUrl}" >> /home/ec2-user/app/backend/.env
           echo "JWT_PRIVATE_KEY=${JwtPrivateKey}" >> /home/ec2-user/app/backend/.env
           echo "PORT=${Port}" >> /home/ec2-user/app/backend/.env
-          echo "MONGO_PASSWORD=${MongoPassword}" >> /home/ec2-user/app/backend/.env
 
           # Run the backend
           cd backend
