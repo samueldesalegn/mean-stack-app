@@ -1,9 +1,9 @@
-name: Deploy to AWS
+name: Upload to S3 and Deploy CloudFormation
 
 on:
   push:
     branches:
-      - main
+      - main  # Adjust the branch name as needed
 
 jobs:
   deploy:
@@ -13,38 +13,21 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '18'
-
-    - name: Install frontend dependencies
-      working-directory: ./frontend
-      run: npm install
-
-    - name: Build frontend
-      working-directory: ./frontend
-      run: npm run build -- --configuration production
-
-    - name: Install backend dependencies
-      working-directory: ./backend
-      run: npm install
-
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
+        aws-region: us-east-1  # Adjust the region as needed
 
-    - name: Deploy to CloudFormation
+    - name: Upload to S3
       run: |
-        aws cloudformation deploy \
-          --template-file mean-stack-template.yaml \
-          --stack-name mean-stack-app \
-          --parameter-overrides \
-            DBServerUrl=${{ secrets.DB_SERVER_URL }} \
-            JwtPrivateKey=${{ secrets.JWT_PRIVATE_KEY }} \
-            Port=${{ secrets.PORT }} \
-            MongoPassword=${{ secrets.MONGO_PASSWORD }} \
+        aws s3 cp mean-stack-template.yml s3://mean-stack-sam/mean-stack-template.yml
+
+    - name: Deploy CloudFormation stack
+      run: |
+        aws cloudformation create-stack \
+          --stack-name MEANStackApp \
+          --template-url "https://s3.amazonaws.com/mean-stack-sam/mean-stack-template.yml" \
+          --parameters ParameterKey=JwtPrivateKey,ParameterValue="6553c1f160d95c7bea24f667" ParameterKey=Port,ParameterValue="3000" \
           --capabilities CAPABILITY_NAMED_IAM

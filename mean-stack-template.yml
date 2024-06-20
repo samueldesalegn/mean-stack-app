@@ -19,16 +19,16 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
-          yum update -y
-          yum install -y docker
-          service docker start
-          usermod -a -G docker ec2-user
-          curl -sL https://rpm.nodesource.com/setup_18.x | sudo bash -
-          yum install -y nodejs
-          npm install -g pm2
+          sudo apt-get update
+          sudo apt-get install -y docker.io
+          sudo systemctl start docker
+          sudo systemctl enable docker
+          sudo usermod -aG docker $USER
+          sudo apt-get install -y nodejs npm
+          sudo npm install -g pm2
 
           # Install Git
-          yum install -y git
+          sudo apt-get install -y git
 
           # Clone the repository
           git clone https://github.com/samueldesalegn/mean-stack-app.git /home/ec2-user/app
@@ -58,7 +58,7 @@ Resources:
   InstanceSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
-      GroupDescription: Enable HTTP access on port 80, 3000, and 4200
+      GroupDescription: Enable HTTP access on port 80 and 4200
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22
@@ -76,3 +76,31 @@ Resources:
           FromPort: 4200
           ToPort: 4200
           CidrIp: 0.0.0.0/0
+
+  MedicationsTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: Medications
+      AttributeDefinitions:
+        - AttributeName: medicationId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: medicationId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  UsersTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: Users
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
