@@ -47,6 +47,11 @@ jobs:
       run: |
         aws s3 cp deploy/mean-stack-app.zip s3://mean-stack-sam/mean-stack-app.zip
 
+    - name: Delete existing CloudFormation stack
+      run: |
+        aws cloudformation delete-stack --stack-name MEANStackApp
+        aws cloudformation wait stack-delete-complete --stack-name MEANStackApp
+
     - name: Deploy CloudFormation stack
       run: |
         aws cloudformation create-stack \
