@@ -14,7 +14,7 @@ Parameters:
 Resources:
   MyEC2Instance:
     Type: 'AWS::EC2::Instance'
-    Properties: 
+    Properties:
       InstanceType: t2.micro
       ImageId: ami-0e879a1b306fffb22
       KeyName: ec2-key-cft
@@ -24,12 +24,15 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash
           yum update -y
-          yum install -y docker git
+          yum install -y docker
           service docker start
           usermod -a -G docker ec2-user
           curl -sL https://rpm.nodesource.com/setup_18.x | sudo bash -
           yum install -y nodejs
           npm install -g pm2
+
+          # Install Git
+          yum install -y git
 
           # Clone the repository
           git clone https://github.com/samueldesalegn/mean-stack-app.git /home/ec2-user/app
@@ -52,7 +55,7 @@ Resources:
           cd ../frontend
           npm install
           npm run build -- --configuration production
-          pm2 serve dist/frontend 4200 --spa
+          pm2 serve dist/drugstore 4200 --spa
 
       Tags:
         - Key: Name
