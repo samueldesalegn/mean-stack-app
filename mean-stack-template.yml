@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation stack for deploying a MEAN stack application
+
+Parameters:
+  DBServerUrl:
+    Type: String
+  JwtPrivateKey:
+    Type: String
+  Port:
+    Type: String
+  MongoPassword:
+    Type: String
+
+Resources:
+  MyEC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties: 
+      InstanceType: t2.micro
+      ImageId: ami-0e879a1b306fffb22
+      KeyName: ec2-key-cft
+      SecurityGroups:
+        - !Ref InstanceSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y docker git
+          service docker start
+          usermod -a -G docker ec2-user
+          curl -sL https://rpm.nodesource.com/setup_18.x | sudo bash -
+          yum install -y nodejs
+          npm install -g pm2
+
+          # Clone the repository
+          git clone https://github.com/samueldesalegn/mean-stack-app.git /home/ec2-user/app
+
+          # Change to the app directory
+          cd /home/ec2-user/app
+
+          # Set environment variables
+          echo "DB_SERVER_URL=${DBServerUrl}" >> /home/ec2-user/app/backend/.env
+          echo "JWT_PRIVATE_KEY=${JwtPrivateKey}" >> /home/ec2-user/app/backend/.env
+          echo "PORT=${Port}" >> /home/ec2-user/app/backend/.env
+          echo "MONGO_PASSWORD=${MongoPassword}" >> /home/ec2-user/app/backend/.env
+
+          # Run the backend
+          cd backend
+          npm install
+          pm2 start server.js
+
+          # Run the frontend
+          cd ../frontend
+          npm install
+          npm run build -- --configuration production
+          pm2 serve dist/frontend 4200 --spa
+
+      Tags:
+        - Key: Name
+          Value: MyEC2Instance
+
+  InstanceSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable HTTP access on port 80 and 4200
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 4200
+          ToPort: 4200
+          CidrIp: 0.0.0.0/0

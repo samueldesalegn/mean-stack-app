@@ -19,14 +19,17 @@ const app = express();
 (async function () {
     try {
         if (process.env.DB_SERVER_URL) {
-            await mongoose.connect(process.env.DB_SERVER_URL);
+            await mongoose.connect(process.env.DB_SERVER_URL, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true,
+            });
             console.log('MongoDB server is connected successfully');
         } else {
             throw new Error('DB server URL is not found');
         }
     } catch (error) {
-        console.log(error);
-        process.exit(0);
+        console.error('Error connecting to MongoDB:', error);
+        process.exit(1);
     }
 })();
 
@@ -42,12 +45,12 @@ app.use('/users', usersRouter);
 app.use('/medications', medicationsRouter);
 
 // Catch all unhandled requests
-app.all('*', async (req, res, next) => next(new ErrorResponse('Route not found', 404)));
+app.all('*', (req, res, next) => next(new ErrorResponse('Route not found', 404)));
 
 // Error handler
 app.use((error, req, res, next) => {
-    res.status(error.status || 500).json({ success: false, data: error.message });
+    res.status(error.status || 500).json({ success: false, message: error.message });
 });
 
-app.listen(process.env.PORT, () => console.log(`Express server is listening on port ${process.env.PORT}`));
-
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Express server is listening on port ${PORT}`));

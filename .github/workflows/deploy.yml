@@ -1,4 +1,4 @@
-name: Deploy to AWS EC2
+name: Deploy to AWS
 
 on:
   push:
@@ -6,43 +6,45 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '18'
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '18'
 
-      - name: Install frontend dependencies
-        working-directory: ./frontend
-        run: npm install
+    - name: Install frontend dependencies
+      working-directory: ./frontend
+      run: npm install
 
-      - name: Build frontend
-        working-directory: ./frontend
-        run: npm run build --prod
+    - name: Build frontend
+      working-directory: ./frontend
+      run: npm run build -- --configuration production
 
-      - name: Install backend dependencies
-        working-directory: ./backend
-        run: npm install
+    - name: Install backend dependencies
+      working-directory: ./backend
+      run: npm install
 
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v0.1.2
-        with:
-          image: ubuntu-latest
-          tasks:
-            - name: SSH into EC2
-              run: |
-                ssh -i ${{ secrets.EC2_SSH_KEY }} ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}
-                cd /path/to/your/app
-                git pull origin main
-                cd frontend
-                npm install
-                npm run build --prod
-                cd ../backend
-                npm install
-                pm2 restart all
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Deploy to CloudFormation
+      run: |
+        aws cloudformation deploy \
+          --template-file mean-stack-template.yaml \
+          --stack-name mean-stack-app \
+          --parameter-overrides \
+            DBServerUrl=${{ secrets.DB_SERVER_URL }} \
+            JwtPrivateKey=${{ secrets.JWT_PRIVATE_KEY }} \
+            Port=${{ secrets.PORT }} \
+            MongoPassword=${{ secrets.MONGO_PASSWORD }} \
+          --capabilities CAPABILITY_NAMED_IAM
