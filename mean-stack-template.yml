@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: CloudFormation stack for deploying a MEAN stack application
+Description: CloudFormation stack for deploying a MEAN stack application with Elastic Beanstalk
 
 Parameters:
   JwtPrivateKey:
@@ -8,52 +8,44 @@ Parameters:
     Type: String
 
 Resources:
-  MyEC2Instance:
-    Type: 'AWS::EC2::Instance'
+  ElasticBeanstalkApplication:
+    Type: 'AWS::ElasticBeanstalk::Application'
     Properties:
-      InstanceType: t2.micro
-      ImageId: ami-04b70fa74e45c3917
-      KeyName: ec2-key-cft
-      SecurityGroups:
-        - !Ref InstanceSecurityGroup
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash
-          sudo apt-get update
-          sudo apt-get install -y docker.io
-          sudo systemctl start docker
-          sudo systemctl enable docker
-          sudo usermod -aG docker $USER
-          sudo apt-get install -y nodejs npm
-          sudo npm install -g pm2
+      ApplicationName: mean-stack-app
+      Description: Elastic Beanstalk Application for MEAN stack
 
-          # Install Git
-          sudo apt-get install -y git
+  ElasticBeanstalkApplicationVersion:
+    Type: 'AWS::ElasticBeanstalk::ApplicationVersion'
+    Properties:
+      ApplicationName: !Ref ElasticBeanstalkApplication
+      Description: Version 1.0
+      SourceBundle:
+        S3Bucket: mean-stack-sam
+        S3Key: mean-stack-app.zip  # Make sure to upload your application package to this S3 bucket
 
-          # Clone the repository
-          git clone https://github.com/samueldesalegn/mean-stack-app.git /home/ec2-user/app
-
-          # Change to the app directory
-          cd /home/ec2-user/app
-
-          # Set environment variables
-          echo "JWT_PRIVATE_KEY=${JwtPrivateKey}" >> /home/ec2-user/app/backend/.env
-          echo "PORT=${Port}" >> /home/ec2-user/app/backend/.env
-
-          # Run the backend
-          cd backend
-          npm install
-          pm2 start server.js
-
-          # Run the frontend
-          cd ../frontend
-          npm install
-          npm run build -- --configuration production
-          pm2 serve dist/frontend 4200 --spa
-
-      Tags:
-        - Key: Name
-          Value: MyEC2Instance
+  ElasticBeanstalkEnvironment:
+    Type: 'AWS::ElasticBeanstalk::Environment'
+    Properties:
+      EnvironmentName: mean-stack-env
+      ApplicationName: !Ref ElasticBeanstalkApplication
+      VersionLabel: !Ref ElasticBeanstalkApplicationVersion
+      SolutionStackName: "64bit Amazon Linux 2 v3.4.4 running Node.js 14"
+      OptionSettings:
+        - Namespace: 'aws:autoscaling:launchconfiguration'
+          OptionName: InstanceType
+          Value: t2.micro
+        - Namespace: 'aws:elasticbeanstalk:environment'
+          OptionName: EnvironmentType
+          Value: LoadBalanced
+        - Namespace: 'aws:elasticbeanstalk:container:nodejs'
+          OptionName: NodeCommand
+          Value: "npm start"
+        - Namespace: 'aws:elasticbeanstalk:application:environment'
+          OptionName: JWT_PRIVATE_KEY
+          Value: !Ref JwtPrivateKey
+        - Namespace: 'aws:elasticbeanstalk:application:environment'
+          OptionName: PORT
+          Value: !Ref Port
 
   InstanceSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'

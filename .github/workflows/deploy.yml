@@ -1,4 +1,4 @@
-name: Upload to S3 and Deploy CloudFormation
+name: Deploy to Elastic Beanstalk
 
 on:
   push:
@@ -13,6 +13,26 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'  # Ensure this matches the version in your Elastic Beanstalk configuration
+
+    - name: Install dependencies and build frontend
+      run: |
+        cd frontend
+        npm install
+        npm run build -- --configuration production
+
+    - name: Prepare application for deployment
+      run: |
+        mkdir deploy
+        cp -r backend deploy/
+        cp -r frontend/dist deploy/frontend
+        cp mean-stack-template.yml deploy/
+        cd deploy
+        zip -r mean-stack-app.zip .
+
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -22,11 +42,16 @@ jobs:
 
     - name: Upload to S3
       run: |
-        aws s3 cp mean-stack-template.yml s3://mean-stack-sam/mean-stack-template.yml
+        aws s3 cp mean-stack-app.zip s3://mean-stack-sam/mean-stack-app.zip
 
     - name: Deploy CloudFormation stack
       run: |
         aws cloudformation create-stack \
+          --stack-name MEANStackApp \
+          --template-url "https://s3.amazonaws.com/mean-stack-sam/mean-stack-template.yml" \
+          --parameters ParameterKey=JwtPrivateKey,ParameterValue="6553c1f160d95c7bea24f667" ParameterKey=Port,ParameterValue="3000" \
+          --capabilities CAPABILITY_NAMED_IAM || \
+        aws cloudformation update-stack \
           --stack-name MEANStackApp \
           --template-url "https://s3.amazonaws.com/mean-stack-sam/mean-stack-template.yml" \
           --parameters ParameterKey=JwtPrivateKey,ParameterValue="6553c1f160d95c7bea24f667" ParameterKey=Port,ParameterValue="3000" \
