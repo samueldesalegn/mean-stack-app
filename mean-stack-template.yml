@@ -8,102 +8,44 @@ Parameters:
     Type: String
 
 Resources:
-  MyEC2Instance:
-    Type: 'AWS::EC2::Instance'
+  MyElasticBeanstalkServiceRole:
+    Type: 'AWS::IAM::Role'
     Properties:
-      InstanceType: t2.micro
-      ImageId: ami-04b70fa74e45c3917
-      KeyName: ec2-key-cft
-      SecurityGroups:
-        - !Ref InstanceSecurityGroup
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash
-          sudo apt-get update
-          sudo apt-get install -y docker.io
-          sudo systemctl start docker
-          sudo systemctl enable docker
-          sudo usermod -aG docker $USER
-          sudo apt-get install -y nodejs npm
-          sudo npm install -g pm2
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: "elasticbeanstalk.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: "ElasticBeanstalkService"
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ec2:*"
+                  - "elasticloadbalancing:*"
+                  - "autoscaling:*"
+                  - "cloudwatch:*"
+                  - "s3:*"
+                  - "dynamodb:*"
+                  - "rds:*"
+                  - "sns:*"
+                  - "sqs:*"
+                  - "cloudformation:*"
+                  - "logs:*"
+                Resource: "*"
 
-          # Install Git
-          sudo apt-get install -y git
-
-          # Clone the repository
-          git clone https://github.com/samueldesalegn/mean-stack-app.git /home/ec2-user/app
-
-          # Change to the app directory
-          cd /home/ec2-user/app
-
-          # Set environment variables
-          echo "JWT_PRIVATE_KEY=${JwtPrivateKey}" >> /home/ec2-user/app/backend/.env
-          echo "PORT=${Port}" >> /home/ec2-user/app/backend/.env
-
-          # Run the backend
-          cd backend
-          npm install
-          pm2 start server.js
-
-          # Run the frontend
-          cd ../frontend
-          npm install
-          npm run build -- --configuration production
-          pm2 serve dist/frontend 4200 --spa
-
-      Tags:
-        - Key: Name
-          Value: MyEC2Instance
-
-  InstanceSecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
+  ElasticBeanstalkInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
     Properties:
-      GroupDescription: Enable HTTP access on port 80 and 4200
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 3000
-          ToPort: 3000
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 4200
-          ToPort: 4200
-          CidrIp: 0.0.0.0/0
-
-  MedicationsTable:
-    Type: 'AWS::DynamoDB::Table'
-    Properties:
-      TableName: Medications
-      AttributeDefinitions:
-        - AttributeName: medicationId
-          AttributeType: S
-      KeySchema:
-        - AttributeName: medicationId
-          KeyType: HASH
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
-
-  UsersTable:
-    Type: 'AWS::DynamoDB::Table'
-    Properties:
-      TableName: Users
-      AttributeDefinitions:
-        - AttributeName: userId
-          AttributeType: S
-      KeySchema:
-        - AttributeName: userId
-          KeyType: HASH
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+      Path: "/"
+      Roles:
+        - Ref: MyElasticBeanstalkServiceRole
 
   ElasticBeanstalkApplication:
     Type: 'AWS::ElasticBeanstalk::Application'
@@ -138,3 +80,31 @@ Resources:
       SourceBundle:
         S3Bucket: "mean-stack-sam"
         S3Key: "mean-stack-app.zip"
+
+  MedicationsTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: Medications
+      AttributeDefinitions:
+        - AttributeName: medicationId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: medicationId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  UsersTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: Users
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
