@@ -8,39 +8,52 @@ Parameters:
     Type: String
 
 Resources:
-  ElasticBeanstalkApplication:
-    Type: "AWS::ElasticBeanstalk::Application"
+  MyEC2Instance:
+    Type: 'AWS::EC2::Instance'
     Properties:
-      ApplicationName: !Sub "${AWS::StackName}-app"
+      InstanceType: t2.micro
+      ImageId: ami-04b70fa74e45c3917
+      KeyName: ec2-key-cft
+      SecurityGroups:
+        - !Ref InstanceSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo apt-get update
+          sudo apt-get install -y docker.io
+          sudo systemctl start docker
+          sudo systemctl enable docker
+          sudo usermod -aG docker $USER
+          sudo apt-get install -y nodejs npm
+          sudo npm install -g pm2
 
-  ElasticBeanstalkEnvironment:
-    Type: "AWS::ElasticBeanstalk::Environment"
-    Properties:
-      EnvironmentName: !Sub "${AWS::StackName}-env"
-      ApplicationName: !Ref ElasticBeanstalkApplication
-      SolutionStackName: "64bit Amazon Linux 2023 v6.1.6 running Node.js 18"
-      OptionSettings:
-        - Namespace: "aws:autoscaling:launchconfiguration"
-          OptionName: "InstanceType"
-          Value: "t2.micro"
-        - Namespace: "aws:elasticbeanstalk:environment"
-          OptionName: "EnvironmentType"
-          Value: "SingleInstance"
-        - Namespace: "aws:elasticbeanstalk:application:environment"
-          OptionName: "JWT_PRIVATE_KEY"
-          Value: !Ref JwtPrivateKey
-        - Namespace: "aws:elasticbeanstalk:application:environment"
-          OptionName: "PORT"
-          Value: !Ref Port
-      VersionLabel: !Ref ApplicationVersion
+          # Install Git
+          sudo apt-get install -y git
 
-  ApplicationVersion:
-    Type: "AWS::ElasticBeanstalk::ApplicationVersion"
-    Properties:
-      ApplicationName: !Ref ElasticBeanstalkApplication
-      SourceBundle:
-        S3Bucket: "mean-stack-sam"
-        S3Key: "mean-stack-app.zip"
+          # Clone the repository
+          git clone https://github.com/samueldesalegn/mean-stack-app.git /home/ec2-user/app
+
+          # Change to the app directory
+          cd /home/ec2-user/app
+
+          # Set environment variables
+          echo "JWT_PRIVATE_KEY=${JwtPrivateKey}" >> /home/ec2-user/app/backend/.env
+          echo "PORT=${Port}" >> /home/ec2-user/app/backend/.env
+
+          # Run the backend
+          cd backend
+          npm install
+          pm2 start server.js
+
+          # Run the frontend
+          cd ../frontend
+          npm install
+          npm run build -- --configuration production
+          pm2 serve dist/frontend 4200 --spa
+
+      Tags:
+        - Key: Name
+          Value: MyEC2Instance
 
   InstanceSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
@@ -91,3 +104,37 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
+
+  ElasticBeanstalkApplication:
+    Type: 'AWS::ElasticBeanstalk::Application'
+    Properties:
+      ApplicationName: !Sub "${AWS::StackName}-app"
+
+  ElasticBeanstalkEnvironment:
+    Type: 'AWS::ElasticBeanstalk::Environment'
+    Properties:
+      EnvironmentName: !Sub "${AWS::StackName}-env-${AWS::Region}-${AWS::AccountId}"
+      ApplicationName: !Ref ElasticBeanstalkApplication
+      SolutionStackName: "64bit Amazon Linux 2023 v6.1.6 running Node.js 18"
+      OptionSettings:
+        - Namespace: "aws:autoscaling:launchconfiguration"
+          OptionName: "InstanceType"
+          Value: "t2.micro"
+        - Namespace: "aws:elasticbeanstalk:environment"
+          OptionName: "EnvironmentType"
+          Value: "SingleInstance"
+        - Namespace: "aws:elasticbeanstalk:application:environment"
+          OptionName: "JWT_PRIVATE_KEY"
+          Value: !Ref JwtPrivateKey
+        - Namespace: "aws:elasticbeanstalk:application:environment"
+          OptionName: "PORT"
+          Value: !Ref Port
+      VersionLabel: !Ref ApplicationVersion
+
+  ApplicationVersion:
+    Type: 'AWS::ElasticBeanstalk::ApplicationVersion'
+    Properties:
+      ApplicationName: !Ref ElasticBeanstalkApplication
+      SourceBundle:
+        S3Bucket: "mean-stack-sam"
+        S3Key: "mean-stack-app.zip"
