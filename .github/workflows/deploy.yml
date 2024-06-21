@@ -3,7 +3,7 @@ name: Deploy to Elastic Beanstalk
 on:
   push:
     branches:
-      - main  # Adjust the branch name as needed
+      - main
 
 jobs:
   deploy:
@@ -16,7 +16,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v2
       with:
-        node-version: '18'  # Ensure this matches the version in your Elastic Beanstalk configuration
+        node-version: '18'
 
     - name: Install dependencies and build frontend
       run: |
@@ -38,16 +38,11 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1  # Adjust the region as needed
+        aws-region: us-east-1
 
     - name: Upload to S3
       run: |
-        aws s3 cp deploy/mean-stack-app.zip s3://mean-stack-sam/mean-stack-app.zip
-
-    - name: Delete existing CloudFormation stack
-      run: |
-        aws cloudformation delete-stack --stack-name MEANStackApp
-        aws cloudformation wait stack-delete-complete --stack-name MEANStackApp
+        aws s3 cp mean-stack-app.zip s3://mean-stack-sam/mean-stack-app.zip
 
     - name: Deploy CloudFormation stack
       run: |
