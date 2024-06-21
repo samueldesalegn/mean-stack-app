@@ -32,7 +32,7 @@ jobs:
         cp mean-stack-template.yml deploy/
         cd deploy
         zip -r mean-stack-app.zip .
-        ls -l mean-stack-app.zip  # Add this line to verify that the ZIP file was created
+        ls -l mean-stack-app.zip  # Verify that the ZIP file was created
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -43,17 +43,12 @@ jobs:
 
     - name: Upload to S3
       run: |
-        aws s3 cp deploy/mean-stack-app.zip s3://mean-stack-sam/mean-stack-app.zip
+        aws s3 cp deploy/mean-stack-app.zip s3://mean-stack-sam/mean-stack-app.zip --acl public-read
 
     - name: Deploy CloudFormation stack
       run: |
-        aws cloudformation create-stack \
+        aws cloudformation deploy \
           --stack-name MEANStackApp \
-          --template-url "https://s3.amazonaws.com/mean-stack-sam/mean-stack-template.yml" \
-          --parameters ParameterKey=JwtPrivateKey,ParameterValue="6553c1f160d95c7bea24f667" ParameterKey=Port,ParameterValue="3000" \
-          --capabilities CAPABILITY_NAMED_IAM || \
-        aws cloudformation update-stack \
-          --stack-name MEANStackApp \
-          --template-url "https://s3.amazonaws.com/mean-stack-sam/mean-stack-template.yml" \
-          --parameters ParameterKey=JwtPrivateKey,ParameterValue="6553c1f160d95c7bea24f667" ParameterKey=Port,ParameterValue="3000" \
-          --capabilities CAPABILITY_NAMED_IAM
+          --template-file deploy/mean-stack-template.yml \
+          --capabilities CAPABILITY_NAMED_IAM \
+          --parameter-overrides JwtPrivateKey="6553c1f160d95c7bea24f667" Port="3000"

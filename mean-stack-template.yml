@@ -9,12 +9,12 @@ Parameters:
 
 Resources:
   ElasticBeanstalkApplication:
-    Type: 'AWS::ElasticBeanstalk::Application'
+    Type: "AWS::ElasticBeanstalk::Application"
     Properties:
       ApplicationName: !Sub "${AWS::StackName}-app"
 
   ElasticBeanstalkEnvironment:
-    Type: 'AWS::ElasticBeanstalk::Environment'
+    Type: "AWS::ElasticBeanstalk::Environment"
     Properties:
       EnvironmentName: !Sub "${AWS::StackName}-env"
       ApplicationName: !Ref ElasticBeanstalkApplication
@@ -35,7 +35,7 @@ Resources:
       VersionLabel: !Ref ApplicationVersion
 
   ApplicationVersion:
-    Type: 'AWS::ElasticBeanstalk::ApplicationVersion'
+    Type: "AWS::ElasticBeanstalk::ApplicationVersion"
     Properties:
       ApplicationName: !Ref ElasticBeanstalkApplication
       SourceBundle:
