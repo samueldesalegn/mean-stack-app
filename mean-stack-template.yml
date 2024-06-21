@@ -118,10 +118,8 @@ Resources:
         Statement:
           - Effect: "Allow"
             Principal:
-              Service:
-                - "elasticbeanstalk.amazonaws.com"
-            Action:
-              - "sts:AssumeRole"
+              Service: "elasticbeanstalk.amazonaws.com"
+            Action: "sts:AssumeRole"
       Path: "/"
       Policies:
         - PolicyName: "ElasticBeanstalkService"
@@ -130,14 +128,17 @@ Resources:
             Statement:
               - Effect: "Allow"
                 Action:
-                  - "s3:*"
+                  - "ec2:Describe*"
+                  - "elasticloadbalancing:*"
+                  - "autoscaling:Describe*"
                   - "cloudwatch:*"
-                  - "logs:*"
-                  - "ec2:*"
-                  - "elasticbeanstalk:*"
+                  - "s3:*"
+                  - "dynamodb:*"
+                  - "sqs:*"
+                  - "sns:*"
                 Resource: "*"
 
-  ElasticBeanstalkInstanceProfile:
+  MyElasticBeanstalkInstanceProfile:
     Type: "AWS::IAM::InstanceProfile"
     Properties:
       Path: "/"
@@ -147,7 +148,7 @@ Resources:
   ElasticBeanstalkEnvironment:
     Type: 'AWS::ElasticBeanstalk::Environment'
     Properties:
-      EnvironmentName: !Sub "${AWS::StackName}-env-${AWS::Region}-${AWS::AccountId}"
+      EnvironmentName: !Sub "${AWS::StackName}-env"
       ApplicationName: !Ref ElasticBeanstalkApplication
       SolutionStackName: "64bit Amazon Linux 2023 v6.1.6 running Node.js 18"
       OptionSettings:
@@ -163,9 +164,9 @@ Resources:
         - Namespace: "aws:elasticbeanstalk:application:environment"
           OptionName: "PORT"
           Value: !Ref Port
-        - Namespace: "aws:elasticbeanstalk:environment"
-          OptionName: "ServiceRole"
-          Value: !Ref MyElasticBeanstalkServiceRole
+        - Namespace: "aws:autoscaling:launchconfiguration"
+          OptionName: "IamInstanceProfile"
+          Value: !Ref MyElasticBeanstalkInstanceProfile
       VersionLabel: !Ref ApplicationVersion
 
   ApplicationVersion:
