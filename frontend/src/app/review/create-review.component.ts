@@ -1,8 +1,8 @@
 import {
   Component,
   EventEmitter,
-  Output,
-  Input,
+  input,
+  output,
   OnChanges,
   SimpleChanges,
   inject,
@@ -24,7 +24,7 @@ import { ActivatedRoute } from '@angular/router';
       id="create-review-form"
     >
       <h3 class="form-title">
-        {{ review ? 'Edit Review' : 'Add Your Review' }}
+        {{ review() ? 'Edit Review' : 'Add Your Review' }}
       </h3>
       <div class="rating-container">
         <button
@@ -73,18 +73,16 @@ import { ActivatedRoute } from '@angular/router';
       ></textarea>
       <div class="button-container">
         <button [disabled]="form.invalid" type="submit" class="submit-button">
-          {{ review ? 'Save Review' : 'Submit Review' }}
+          {{ review() ? 'Save Review' : 'Submit Review' }}
         </button>
-        @if (!!review) {
-          <button
-            type="reset"
-            (click)="review = undefined"
-            class="cancel-button"
-          >
-            Exit Editing
-          </button>
-
-        }
+        <button
+          *ngIf="review()"
+          type="reset"
+          (click)="review()"
+          class="cancel-button"
+        >
+          Exit Editing
+        </button>
       </div>
     </form>
   `,
@@ -193,14 +191,14 @@ import { ActivatedRoute } from '@angular/router';
   ],
 })
 export class CreateReviewComponent implements OnChanges {
-  @Input() review?: Review;
-  @Input() medicationId!: string;
-  @Output() onCreate = new EventEmitter<boolean>();
-  @Output() onUpdate = new EventEmitter<boolean>();
+  review = input<Review>();
+  medicationId = input<string>();
+  onCreate = output<boolean>();
+  onUpdate = output<boolean>();
 
-  #reviewService = inject(ReviewService);
-  #authService = inject(AuthService);
-  #activatedRoute = inject(ActivatedRoute);
+  private reviewService = inject(ReviewService);
+  private authService = inject(AuthService);
+  private activatedRoute = inject(ActivatedRoute);
   form = inject(FormBuilder).nonNullable.group({
     review: ['', Validators.required],
     rating: [0, Validators.min(1)],
@@ -209,8 +207,8 @@ export class CreateReviewComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges) {
     if (changes['review'] && this.review) {
       this.form.setValue({
-        review: this.review?.review || '',
-        rating: this.review?.rating || 0,
+        review: this.review()?.review || '',
+        rating: this.review()?.rating || 0,
       });
     }
   }
@@ -234,7 +232,7 @@ export class CreateReviewComponent implements OnChanges {
       rating: this.form.value.rating!,
     };
 
-    const tokenData = this.#authService.getTokenData();
+    const tokenData = this.authService.getTokenData();
     if (tokenData) {
       payload.tokenData = tokenData;
     } else {
@@ -242,18 +240,17 @@ export class CreateReviewComponent implements OnChanges {
       return;
     }
 
-    const medicationId = this.#activatedRoute.snapshot.params['id'];
+    const medicationId = this.activatedRoute.snapshot.params['id'];
 
-    if (this.review?._id) {
-      this.#reviewService
-        .updateReview(medicationId, this.review._id, payload)
+    if (this.review()?._id) {
+      this.reviewService
+        .updateReview(medicationId, this.review()!._id, payload)
         .subscribe((success) => {
           this.onUpdate.emit(success);
           this.form.reset();
-          this.review = undefined;
         });
     } else {
-      this.#reviewService
+      this.reviewService
         .createReview(medicationId, payload)
         .subscribe((success) => {
           this.onCreate.emit(success);

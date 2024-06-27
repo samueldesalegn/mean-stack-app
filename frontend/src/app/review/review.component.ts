@@ -1,8 +1,8 @@
 import {
   Component,
   EventEmitter,
-  Input,
-  Output,
+  input,
+  output,
   OnChanges,
   SimpleChanges,
   inject,
@@ -26,9 +26,9 @@ import { MatInputModule } from '@angular/material/input';
   template: `
     <div *ngIf="review" class="review-details">
       <ng-container *ngIf="!isEditing; else editTemplate">
-        <p class="review-text">{{ review.review }}</p>
+        <p class="review-text">{{ review().review }}</p>
         <p class="review-rating">
-          <strong>Rating:</strong> {{ review.rating }}
+          <strong>Rating:</strong> {{ review().rating }}
         </p>
         <div *ngIf="canEditReview" class="actions">
           <button class="action-button" (click)="startEditing()">Edit</button>
@@ -119,10 +119,11 @@ import { MatInputModule } from '@angular/material/input';
   ],
 })
 export class ReviewComponent implements OnChanges {
-  @Input() review?: Review;
-  @Input() medicationId!: string;
-  @Output() onEdit = new EventEmitter<Review>();
-  @Output() onDelete = new EventEmitter<string>();
+  review = input.required<Review>();
+  medicationId = input.required<string>();
+  
+  onEdit = output<Review>();
+  onDelete = output<string>();
 
   form: FormGroup;
   isEditing = false;
@@ -163,7 +164,7 @@ export class ReviewComponent implements OnChanges {
     };
 
     this.#reviewService
-      .updateReview(this.medicationId, this.review!._id, reviewPayload)
+      .updateReview(this.medicationId(), this.review()!._id, reviewPayload)
       .subscribe({
         next: (success) => {
           if (success) {
@@ -183,10 +184,10 @@ export class ReviewComponent implements OnChanges {
     if (confirm('Are you sure you want to delete the review?')) {
       const tokenData = this.#authService.getTokenData();
       this.#reviewService
-        .deleteReview(this.medicationId, this.review?._id || '', tokenData)
+        .deleteReview(this.medicationId(), this.review()._id || '', tokenData)
         .subscribe({
           next: () => {
-            this.onDelete.emit(this.review?._id);
+            this.onDelete.emit(this.review()._id);
           },
           error: (err) => {
             console.error('Error deleting review:', err);
@@ -196,6 +197,6 @@ export class ReviewComponent implements OnChanges {
   }
 
   get canEditReview() {
-    return this.#authService.auth_signal()._id === this.review?.by?.user_id;
+    return this.#authService.auth_signal()._id === this.review().by?.user_id;
   }
 }
